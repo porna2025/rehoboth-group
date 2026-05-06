@@ -102,6 +102,15 @@ DATABASES = {
     }
 }
 
+# Support DATABASE_URL (Supabase/Render) — remplace la config individuelle si définie
+_db_url = env('DATABASE_URL', default='')
+if _db_url:
+    DATABASES['default'] = env.db('DATABASE_URL')
+    DATABASES['default'].setdefault('OPTIONS', {})
+    DATABASES['default']['OPTIONS']['connect_timeout'] = 10
+    if not DEBUG:
+        DATABASES['default']['OPTIONS']['sslmode'] = 'require'
+
 AUTH_USER_MODEL = 'users.User'
 
 # ── Django REST Framework ──────────────────────────────────────────────────────
