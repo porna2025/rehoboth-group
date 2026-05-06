@@ -173,7 +173,7 @@ class _SplashRouteState extends State<_SplashRoute>
                       width: 100,
                       height: 100,
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.15),
+                        color: Colors.white.withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(28),
                       ),
                       child: const Icon(
@@ -196,7 +196,7 @@ class _SplashRouteState extends State<_SplashRoute>
                     Text(
                       'Votre service à domicile',
                       style: TextStyle(
-                        color: Colors.white.withOpacity(0.8),
+                        color: Colors.white.withValues(alpha: 0.8),
                         fontSize: 14,
                       ),
                     ),

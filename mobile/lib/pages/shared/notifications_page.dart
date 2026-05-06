@@ -59,7 +59,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
                   context.read<NotificationProvider>().chargerNotifications(),
               child: ListView.separated(
                 itemCount: prov.notifications.length,
-                separatorBuilder: (_, __) => const Divider(height: 1),
+                separatorBuilder: (_, _) => const Divider(height: 1),
                 itemBuilder: (ctx, i) {
                   final n = prov.notifications[i];
                   return _NotifTile(
@@ -106,7 +106,7 @@ class _NotifTile extends StatelessWidget {
         if (!notif.lu) onTap();
       },
       child: Container(
-        color: notif.lu ? null : const Color(0xFF2563EB).withOpacity(0.05),
+        color: notif.lu ? null : const Color(0xFF2563EB).withValues(alpha: 0.05),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -114,7 +114,7 @@ class _NotifTile extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: const Color(0xFF2563EB).withOpacity(0.1),
+                color: const Color(0xFF2563EB).withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
               child: Icon(_icon, size: 20, color: const Color(0xFF2563EB)),

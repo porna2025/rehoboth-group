@@ -20,6 +20,7 @@ export default function ToutesLesDemandes() {
   const [demandes,    setDemandes]    = useState([])
   const [categories,  setCategories]  = useState([])
   const [loading,     setLoading]     = useState(true)
+  const [error,       setError]       = useState(null)
   const [statut,      setStatut]      = useState('')
   const [categorie,   setCategorie]   = useState('')
   const [search,      setSearch]      = useState('')
@@ -28,17 +29,40 @@ export default function ToutesLesDemandes() {
   const PAGE_SIZE = 20
 
   useEffect(() => {
-    technicienApi.getCategories().then(({ data }) => setCategories(data))
+    technicienApi.getCategories()
+      .then(({ data }) => {
+        const list = Array.isArray(data) ? data : (data?.results ?? [])
+        setCategories(list)
+      })
+      .catch(() => setCategories([]))
   }, [])
 
   useEffect(() => {
     setLoading(true)
-    demandeApi.getToutesDemandes({ statut, categorie, page })
+    setError(null)
+    const controller = new AbortController()
+    demandeApi.getToutesDemandes({ statut, categorie, page }, controller.signal)
       .then(({ data }) => {
-        if (data.results) { setDemandes(data.results); setTotal(data.count) }
-        else              { setDemandes(data);          setTotal(data.length) }
+        if (Array.isArray(data)) {
+          setDemandes(data)
+          setTotal(data.length)
+        } else if (data?.results) {
+          setDemandes(data.results)
+          setTotal(data.count)
+        } else {
+          setDemandes([])
+          setTotal(0)
+        }
+      })
+      .catch((err) => {
+        if (err?.name === 'CanceledError' || err?.code === 'ERR_CANCELED') return
+        const detail = err?.response?.data?.detail || err?.response?.data?.error
+        setError(detail || 'Impossible de charger les demandes.')
+        setDemandes([])
+        setTotal(0)
       })
       .finally(() => setLoading(false))
+    return () => controller.abort()
   }, [statut, categorie, page])
 
   const filtered = search
@@ -74,9 +98,20 @@ export default function ToutesLesDemandes() {
         </span>
       </div>
 
+      {error && (
+        <div style={{ background: '#fff3cd', border: '1px solid #ffc107', borderRadius: 'var(--rayon)', padding: '0.75rem 1rem', marginBottom: '1rem', color: '#856404', fontSize: '0.88rem' }}>
+          {error}
+        </div>
+      )}
+
       {loading ? <Spinner /> : (
         <>
           <div style={{ background: 'var(--blanc)', borderRadius: 'var(--rayon-lg)', boxShadow: 'var(--ombre)', overflow: 'hidden' }}>
+            {filtered.length === 0 ? (
+              <div style={{ padding: '2.5rem', textAlign: 'center', color: 'var(--gris)', fontSize: '0.9rem' }}>
+                Aucune demande trouvée pour ces filtres.
+              </div>
+            ) : (
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
               <thead>
                 <tr style={{ background: 'var(--bleu-clair)' }}>
@@ -107,6 +142,7 @@ export default function ToutesLesDemandes() {
                 })}
               </tbody>
             </table>
+            )}
           </div>
 
           {/* Pagination */}

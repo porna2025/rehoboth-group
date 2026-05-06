@@ -69,6 +69,7 @@ class DemandeProvider extends ChangeNotifier {
   }
 
   Future<void> chargerDetail(String id) async {
+    _detail = null;
     _setLoading(true);
     _setError(null);
     try {

@@ -155,7 +155,7 @@ class _CreerDemandePageState extends State<CreerDemandePage> {
             children: [
               if (_technicien != null)
                 Card(
-                  color: const Color(0xFF2563EB).withOpacity(0.06),
+                  color: const Color(0xFF2563EB).withValues(alpha: 0.06),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10),
                   ),
@@ -184,6 +184,7 @@ class _CreerDemandePageState extends State<CreerDemandePage> {
               ),
               const SizedBox(height: 6),
               DropdownButtonFormField<Categorie>(
+                // ignore: deprecated_member_use
                 value: _categorie,
                 hint: const Text('Choisir une catégorie'),
                 items: techProv.categories
@@ -384,7 +385,7 @@ class _SelectChip extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
         decoration: BoxDecoration(
           color: selected
-              ? const Color(0xFF2563EB).withOpacity(0.1)
+              ? const Color(0xFF2563EB).withValues(alpha: 0.1)
               : Colors.grey[100],
           borderRadius: BorderRadius.circular(10),
           border: Border.all(

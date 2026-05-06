@@ -38,6 +38,11 @@ export const demandeApi = {
     api.post(`/demandes/${id}/messages/envoyer/`, { contenu }),
 
   // Admin
-  getToutesDemandes: (params = {}) =>
-    api.get('/demandes/admin/toutes/', { params }),
+  getToutesDemandes: (params = {}, signal) => {
+    // N'envoyer que les paramètres non vides pour éviter ?categorie= parasites
+    const cleanParams = Object.fromEntries(
+      Object.entries(params).filter(([, v]) => v !== '' && v !== null && v !== undefined)
+    )
+    return api.get('/demandes/admin/toutes/', { params: cleanParams, signal })
+  },
 }

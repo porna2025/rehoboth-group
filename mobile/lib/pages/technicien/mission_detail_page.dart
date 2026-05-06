@@ -11,6 +11,8 @@ class MissionDetailPage extends StatefulWidget {
 }
 
 class _MissionDetailPageState extends State<MissionDetailPage> {
+  bool _initialized = false;
+
   @override
   void initState() {
     super.initState();
@@ -19,6 +21,7 @@ class _MissionDetailPageState extends State<MissionDetailPage> {
       if (id != null) {
         context.read<DemandeProvider>().chargerDetail(id);
       }
+      if (mounted) setState(() => _initialized = true);
     });
   }
 
@@ -31,8 +34,29 @@ class _MissionDetailPageState extends State<MissionDetailPage> {
         backgroundColor: const Color(0xFF1E293B),
         foregroundColor: Colors.white,
       ),
-      body: prov.isLoading
+      body: (!_initialized || prov.isLoading)
           ? const Center(child: CircularProgressIndicator())
+          : prov.error != null
+          ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    prov.error!,
+                    style: const TextStyle(color: Colors.red),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 12),
+                  ElevatedButton(
+                    onPressed: () {
+                      final id = ModalRoute.of(context)?.settings.arguments as String?;
+                      if (id != null) context.read<DemandeProvider>().chargerDetail(id);
+                    },
+                    child: const Text('Réessayer'),
+                  ),
+                ],
+              ),
+            )
           : prov.detail == null
           ? const Center(child: Text('Mission introuvable'))
           : _Body(demande: prov.detail!),
@@ -264,7 +288,7 @@ class _StatutBanner extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: _color.withOpacity(0.12),
+        color: _color.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: _color, width: 0.8),
       ),

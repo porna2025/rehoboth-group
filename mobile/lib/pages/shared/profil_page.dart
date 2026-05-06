@@ -116,7 +116,7 @@ class _ProfilPageState extends State<ProfilPage> {
               children: [
                 CircleAvatar(
                   radius: 48,
-                  backgroundColor: const Color(0xFF2563EB).withOpacity(0.15),
+                  backgroundColor: const Color(0xFF2563EB).withValues(alpha: 0.15),
                   backgroundImage: user.photoProfil != null
                       ? NetworkImage(user.photoProfil!)
                       : null,
@@ -217,7 +217,7 @@ class _RoleBadge extends StatelessWidget {
       padding: const EdgeInsets.only(top: 4),
       child: Chip(
         label: Text(labels[role] ?? role),
-        backgroundColor: const Color(0xFF2563EB).withOpacity(0.1),
+        backgroundColor: const Color(0xFF2563EB).withValues(alpha: 0.1),
         labelStyle: const TextStyle(color: Color(0xFF2563EB)),
       ),
     );

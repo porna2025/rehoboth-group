@@ -68,7 +68,7 @@ class _Body extends StatelessWidget {
               children: [
                 CircleAvatar(
                   radius: 44,
-                  backgroundColor: const Color(0xFF2563EB).withOpacity(0.15),
+                  backgroundColor: const Color(0xFF2563EB).withValues(alpha: 0.15),
                   backgroundImage: t.user.photoProfil != null
                       ? NetworkImage(t.user.photoProfil!)
                       : null,

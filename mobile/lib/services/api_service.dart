@@ -122,7 +122,7 @@ class ApiService {
       data: {
         'email': email,
         'password': password,
-        if (fcmToken != null) 'fcm_token': fcmToken,
+        'fcm_token': ?fcmToken,
       },
     );
 
@@ -280,9 +280,9 @@ class ApiService {
     final response = await _dio.patch(
       '/auth/profil/',
       data: {
-        if (nom != null) 'nom': nom,
-        if (prenom != null) 'prenom': prenom,
-        if (telephone != null) 'telephone': telephone,
+        'nom': ?nom,
+        'prenom': ?prenom,
+        'telephone': ?telephone,
       },
     );
     return User.fromJson(response.data as Map<String, dynamic>);
@@ -326,12 +326,12 @@ class ApiService {
   }) async {
     final params = <String, dynamic>{
       'rayon': rayon,
-      if (categorieId != null) 'categorie': categorieId,
+      'categorie': ?categorieId,
       if (disponible == true) 'disponible': 'true',
-      if (noteMin != null) 'note_min': noteMin,
-      if (lat != null) 'lat': lat,
-      if (lng != null) 'lng': lng,
-      if (search != null) 'search': search,
+      'note_min': ?noteMin,
+      'lat': ?lat,
+      'lng': ?lng,
+      'search': ?search,
     };
 
     final response = await _dio.get('/techniciens/', queryParameters: params);
@@ -371,9 +371,9 @@ class ApiService {
       data: {
         'categorie_id': categorieId,
         'specialite': specialite,
-        if (description != null) 'description': description,
-        if (tarifHoraire != null) 'tarif_horaire': tarifHoraire,
-        if (zoneCouverture != null) 'zone_couverture': zoneCouverture,
+        'description': ?description,
+        'tarif_horaire': ?tarifHoraire,
+        'zone_couverture': ?zoneCouverture,
         'annees_experience': anneesExperience,
       },
     );
@@ -417,7 +417,7 @@ class ApiService {
         'longitude': longitude,
         'type_intervention': typeIntervention,
         'mode': mode,
-        if (dateSouhaitee != null) 'date_souhaitee': dateSouhaitee,
+        'date_souhaitee': ?dateSouhaitee,
       },
     );
     return Demande.fromJson(response.data as Map<String, dynamic>);
@@ -478,8 +478,8 @@ class ApiService {
       '/demandes/$id/statut/',
       data: {
         'statut': statut,
-        if (rapport != null) 'rapport': rapport,
-        if (montantDevis != null) 'montant_devis': montantDevis,
+        'rapport': ?rapport,
+        'montant_devis': ?montantDevis,
       },
     );
     return Demande.fromJson(response.data as Map<String, dynamic>);
@@ -535,7 +535,7 @@ class ApiService {
         'demande_id': demandeId,
         'montant': montant,
         'methode': methode,
-        if (telephone != null) 'telephone_paiement': telephone,
+        'telephone_paiement': ?telephone,
       },
     );
     return response.data as Map<String, dynamic>;

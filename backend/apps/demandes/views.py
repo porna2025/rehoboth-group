@@ -158,11 +158,26 @@ def detail_demande(request, pk):
     GET /api/v1/demandes/<uuid>/
     Voir le détail d'une demande (accessible par le client, le technicien, ou l'admin).
     """
+    from django.db.models import Q
     try:
         if request.user.is_client:
             demande = Demande.objects.get(id=pk, client=request.user)
         elif request.user.is_technicien:
-            demande = Demande.objects.get(id=pk, technicien=request.user)
+            # Technicien peut voir : ses missions assignées OU les demandes disponibles (en_attente) de sa catégorie
+            try:
+                profil = request.user.profil_technicien
+            except Exception:
+                profil = None
+
+            if profil:
+                demande = Demande.objects.get(
+                    Q(id=pk) & (
+                        Q(technicien=request.user) |
+                        Q(statut=Demande.EN_ATTENTE, categorie=profil.categorie)
+                    )
+                )
+            else:
+                demande = Demande.objects.get(id=pk, technicien=request.user)
         else:
             demande = Demande.objects.get(id=pk)
     except Demande.DoesNotExist:

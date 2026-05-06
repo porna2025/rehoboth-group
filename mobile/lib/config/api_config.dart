@@ -9,7 +9,7 @@
 /// Pour émulateur iOS      : utiliser localhost ou 127.0.0.1
 class ApiConfig {
   // ─── Modifiez UNIQUEMENT cette ligne selon votre environnement ────────────
-  static const String _serverIp = '192.168.1.90'; // ← votre IP Wi-Fi du PC
+  static const String _serverIp = '192.168.1.40'; // ← votre IP Wi-Fi du PC
   // ─────────────────────────────────────────────────────────────────────────
 
   static const int _port = 8000;
