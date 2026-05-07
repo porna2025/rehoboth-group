@@ -12,7 +12,7 @@ const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1'
 const api = axios.create({
   baseURL: BASE_URL,
   headers: { 'Content-Type': 'application/json' },
-  timeout: 15000, // 15 secondes
+  timeout: 60000, // 60 secondes (Render free tier peut prendre ~50s au réveil)
 })
 
 // ── Intercepteur de requête : injecter le token JWT ───────────────────────
