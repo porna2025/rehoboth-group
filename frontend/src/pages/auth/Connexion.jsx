@@ -16,6 +16,7 @@ export default function Connexion() {
   const [otpState, setOtpState] = useState({ active: false, email: '', otp_session_token: '', otp_code: '' })
   const [error, setError]     = useState('')
   const [message, setMessage] = useState('')
+  const [debugOtpCode, setDebugOtpCode] = useState('')
   const [loading, setLoading] = useState(false)
   const [resendCountdown, setResendCountdown] = useState(0)
 
@@ -68,6 +69,7 @@ export default function Connexion() {
     e.preventDefault()
     setError('')
     setMessage('')
+    setDebugOtpCode('')
     setLoading(true)
     try {
       const result = await login(form.email, form.password)
@@ -79,6 +81,7 @@ export default function Connexion() {
           otp_code: '',
         })
         setMessage(result.message)
+        setDebugOtpCode(result.debug_otp_code || '')
         setResendCountdown(OTP_RESEND_DELAY)
         return
       }
@@ -100,6 +103,7 @@ export default function Connexion() {
   const handleResendOtp = async () => {
     setError('')
     setMessage('')
+    setDebugOtpCode('')
     setLoading(true)
 
     try {
@@ -109,6 +113,7 @@ export default function Connexion() {
       })
       setOtpState(prev => ({ ...prev, otp_session_token: data.otp_session_token, otp_code: '' }))
       setMessage(data.message)
+      setDebugOtpCode(data.debug_otp_code || '')
       setResendCountdown(OTP_RESEND_DELAY)
     } catch (err) {
       setError(getApiErrorMessage(err, 'Impossible de renvoyer le code.'))
@@ -154,6 +159,11 @@ export default function Connexion() {
 
         {error && <div style={styles.alert}>{error}</div>}
         {message && <div style={styles.info}>{message}</div>}
+        {debugOtpCode && (
+          <div style={styles.debugBox}>
+            Code OTP de secours : <strong>{debugOtpCode}</strong>
+          </div>
+        )}
 
         {!otpState.active ? (
           <form onSubmit={handleSubmit} style={styles.form}>
@@ -300,6 +310,17 @@ const styles = {
     padding:      '0.65rem 1rem',
     fontSize:     '0.88rem',
     marginBottom: '1rem',
+  },
+  debugBox: {
+    background:   '#fff8d6',
+    color:        '#6b5200',
+    border:       '1px solid #f0d36a',
+    borderRadius: 'var(--rayon)',
+    padding:      '0.75rem 1rem',
+    fontSize:     '0.95rem',
+    marginBottom: '1rem',
+    textAlign:    'center',
+    letterSpacing:'0.08rem',
   },
   form: { display: 'flex', flexDirection: 'column', gap: '1rem' },
   field: { display: 'flex', flexDirection: 'column', gap: '0.3rem' },

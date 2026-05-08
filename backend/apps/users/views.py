@@ -84,15 +84,22 @@ def _send_login_otp(user):
         'Si vous n\'êtes pas à l\'origine de cette demande, ignorez cet email.'
     )
 
+    email_sent = True
+
     try:
         _send_security_email(user, subject, body)
     except Exception as exc:
+        email_sent = False
         # L'email SMTP a échoué (ex: IP bloquée par Gmail depuis le serveur cloud)
         # Le code OTP est loggué dans les logs serveur (Render > Logs)
         logger.error("[OTP] Envoi email échoué pour %s : %s", user.email, exc)
         logger.warning("[OTP CODE] %s → %s (valide 10 min)", user.email, otp_code)
 
-    return otp_session_token
+    return {
+        'otp_session_token': otp_session_token,
+        'email_sent': email_sent,
+        'otp_code': otp_code,
+    }
 
 
 def _send_password_reset_code(user):
@@ -164,19 +171,27 @@ def connexion(request):
 
         if user.two_factor_enabled:
             try:
-                otp_session_token = _send_login_otp(user)
+                otp_payload = _send_login_otp(user)
             except Exception:
                 return Response(
                     {'error': "Impossible d'envoyer le code de vérification. Réessayez plus tard."},
                     status=status.HTTP_503_SERVICE_UNAVAILABLE
                 )
 
-            return Response({
+            response_data = {
                 'requires_2fa': True,
                 'message': f"Un code de vérification a été envoyé à {user.email}.",
-                'otp_session_token': otp_session_token,
+                'otp_session_token': otp_payload['otp_session_token'],
                 'email': user.email,
-            }, status=status.HTTP_200_OK)
+            }
+
+            if settings.DEBUG and not otp_payload['email_sent']:
+                response_data['debug_otp_code'] = otp_payload['otp_code']
+                response_data['message'] = (
+                    f"Email indisponible. Utilisez le code affiché à l'écran pour {user.email}."
+                )
+
+            return Response(response_data, status=status.HTTP_200_OK)
 
         return Response({
             'user': UserSerializer(user).data,
@@ -228,18 +243,26 @@ def renvoyer_otp_connexion(request):
     if serializer.is_valid():
         user = serializer.validated_data['user']
         try:
-            otp_session_token = _send_login_otp(user)
+            otp_payload = _send_login_otp(user)
         except Exception:
             return Response(
                 {'error': "Impossible de renvoyer le code de vérification. Réessayez plus tard."},
                 status=status.HTTP_503_SERVICE_UNAVAILABLE
             )
 
-        return Response({
+        response_data = {
             'message': f"Un nouveau code a été envoyé à {user.email}.",
-            'otp_session_token': otp_session_token,
+            'otp_session_token': otp_payload['otp_session_token'],
             'email': user.email,
-        }, status=status.HTTP_200_OK)
+        }
+
+        if settings.DEBUG and not otp_payload['email_sent']:
+            response_data['debug_otp_code'] = otp_payload['otp_code']
+            response_data['message'] = (
+                f"Email indisponible. Utilisez le code affiché à l'écran pour {user.email}."
+            )
+
+        return Response(response_data, status=status.HTTP_200_OK)
 
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
