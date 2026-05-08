@@ -12,17 +12,6 @@ export default function Connexion() {
   const location  = useLocation()
   const from      = location.state?.from?.pathname
 
-  // Si l'utilisateur est déjà connecté, le rediriger vers son dashboard
-  if (authLoading) return <Spinner fullPage />
-  if (user) {
-    const to = user.role === 'admin'
-      ? '/admin/dashboard'
-      : user.role === 'technicien'
-        ? '/technicien/dashboard'
-        : '/client/dashboard'
-    return <Navigate to={to} replace />
-  }
-
   const [form, setForm]       = useState({ email: '', password: '' })
   const [otpState, setOtpState] = useState({ active: false, email: '', otp_session_token: '', otp_code: '' })
   const [error, setError]     = useState('')
@@ -35,6 +24,17 @@ export default function Connexion() {
     const timer = window.setTimeout(() => setResendCountdown(prev => prev - 1), 1000)
     return () => window.clearTimeout(timer)
   }, [resendCountdown])
+
+  // Si l'utilisateur est déjà connecté, le rediriger vers son dashboard
+  if (authLoading) return <Spinner fullPage />
+  if (user) {
+    const to = user.role === 'admin'
+      ? '/admin/dashboard'
+      : user.role === 'technicien'
+        ? '/technicien/dashboard'
+        : '/client/dashboard'
+    return <Navigate to={to} replace />
+  }
 
   const getApiErrorMessage = (err, fallback) => {
     if (!err.response) {
