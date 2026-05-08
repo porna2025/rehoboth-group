@@ -2,11 +2,14 @@
 Vues API — Authentification et gestion des utilisateurs
 """
 
+import logging
 import secrets
 from datetime import timedelta
 
 from django.conf import settings
 from django.core.mail import send_mail
+
+logger = logging.getLogger(__name__)
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes, parser_classes
@@ -73,16 +76,21 @@ def _send_login_otp(user):
     user.otp_expires_at = timezone.now() + timedelta(minutes=10)
     user.save(update_fields=['otp_code', 'otp_session_token', 'otp_expires_at', 'updated_at'])
 
-    _send_security_email(
-        user,
-        'Votre code de connexion Rehoboth Group',
-        (
-            f'Bonjour {user.prenom},\n\n'
-            f'Votre code de vérification est : {otp_code}\n'
-            'Ce code expire dans 10 minutes.\n\n'
-            'Si vous n\'êtes pas à l\'origine de cette demande, ignorez cet email.'
-        ),
+    subject = 'Votre code de connexion Rehoboth Group'
+    body = (
+        f'Bonjour {user.prenom},\n\n'
+        f'Votre code de vérification est : {otp_code}\n'
+        'Ce code expire dans 10 minutes.\n\n'
+        'Si vous n\'êtes pas à l\'origine de cette demande, ignorez cet email.'
     )
+
+    try:
+        _send_security_email(user, subject, body)
+    except Exception as exc:
+        # L'email SMTP a échoué (ex: IP bloquée par Gmail depuis le serveur cloud)
+        # Le code OTP est loggué dans les logs serveur (Render > Logs)
+        logger.error("[OTP] Envoi email échoué pour %s : %s", user.email, exc)
+        logger.warning("[OTP CODE] %s → %s (valide 10 min)", user.email, otp_code)
 
     return otp_session_token
 
