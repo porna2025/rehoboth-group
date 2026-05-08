@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { authApi } from '../../api/authApi'
 import Spinner from '../../components/common/Spinner'
 import Badge from '../../components/common/Badge'
@@ -24,27 +24,50 @@ export default function Utilisateurs() {
   const [erreur,  setErreur]  = useState(null)
   const [role,    setRole]    = useState('')
   const [search,  setSearch]  = useState('')
+  const [debouncedSearch, setDebouncedSearch] = useState('')
   const [detail,  setDetail]  = useState(null)
   const [actionEnCours, setActionEnCours] = useState(false)
+  const abortRef = useRef(null)
 
-  const charger = (r, s = search) => {
+  const charger = (r, s = debouncedSearch) => {
+    abortRef.current?.abort()
+    const controller = new AbortController()
+    abortRef.current = controller
     setLoading(true)
     setErreur(null)
-    authApi.getUtilisateurs(r, s)
+    authApi.getUtilisateurs(r, s, controller.signal)
       .then(({ data }) => {
         // Normaliser : tableau direct ou réponse paginée {count, results:[]}
         const liste = Array.isArray(data) ? data : (data?.results ?? [])
         setUsers(liste)
       })
-      .catch(() => setErreur('Impossible de charger les utilisateurs.'))
-      .finally(() => setLoading(false))
+      .catch((error) => {
+        if (error?.name === 'CanceledError' || error?.code === 'ERR_CANCELED') return
+        setErreur('Impossible de charger les utilisateurs.')
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) {
+          setLoading(false)
+        }
+      })
   }
 
-  useEffect(() => { charger(role, search) }, [role])   // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      setDebouncedSearch(search.trim())
+    }, 350)
+
+    return () => window.clearTimeout(timeoutId)
+  }, [search])
+
+  useEffect(() => {
+    charger(role, debouncedSearch)
+    return () => abortRef.current?.abort()
+  }, [role, debouncedSearch])
 
   const handleSearch = (e) => {
     e.preventDefault()
-    charger(role, search)
+    setDebouncedSearch(search.trim())
   }
 
   const handleSuspendre = async (userId) => {
@@ -106,6 +129,7 @@ export default function Utilisateurs() {
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Rechercher nom, email…"
+            inputMode="search"
             style={{ padding: '5px 12px', border: '1px solid var(--bordure)', borderRadius: 'var(--rayon)', fontSize: '0.83rem', minWidth: 200 }}
           />
           <button type="submit" style={{ ...styles.filtreBtn, background: 'var(--bleu)', color: 'white', borderColor: 'var(--bleu)' }}>🔍</button>

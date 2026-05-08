@@ -15,6 +15,7 @@ export default function MotDePasseOublie() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
+  const [debugResetCode, setDebugResetCode] = useState('')
 
   const handleChange = (e) => {
     const { name, value } = e.target
@@ -26,10 +27,12 @@ export default function MotDePasseOublie() {
     setLoading(true)
     setError('')
     setMessage('')
+    setDebugResetCode('')
     try {
       const { data } = await authApi.demanderResetMotDePasse(form.email)
       setForm(prev => ({ ...prev, reset_token: data.reset_token || prev.reset_token }))
       setMessage(data.message)
+      setDebugResetCode(data.debug_reset_code || '')
       setStep(2)
     } catch (err) {
       setError(err.response?.data?.error ?? err.response?.data?.detail ?? 'Impossible d\'envoyer l\'email de réinitialisation.')
@@ -71,6 +74,11 @@ export default function MotDePasseOublie() {
 
         {error && <div style={styles.alert}>{error}</div>}
         {message && <div style={styles.info}>{message}</div>}
+        {debugResetCode && (
+          <div style={styles.debugBox}>
+            Code de secours : <strong>{debugResetCode}</strong>
+          </div>
+        )}
 
         {step === 1 ? (
           <form onSubmit={handleRequest} style={styles.form}>
@@ -171,6 +179,16 @@ const styles = {
     padding: '0.65rem 1rem',
     fontSize: '0.88rem',
     marginBottom: '1rem',
+  },
+  debugBox: {
+    background: '#fff6d8',
+    color: '#8a6400',
+    border: '1px solid #f1d06a',
+    borderRadius: 'var(--rayon)',
+    padding: '0.75rem 1rem',
+    fontSize: '0.95rem',
+    marginBottom: '1rem',
+    textAlign: 'center',
   },
   form: { display: 'flex', flexDirection: 'column', gap: '1rem' },
   field: { display: 'flex', flexDirection: 'column', gap: '0.3rem' },

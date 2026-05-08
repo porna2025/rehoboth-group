@@ -9,17 +9,33 @@ export function NotificationProvider({ children }) {
   const [count, setCount] = useState(0)
 
   const refresh = useCallback(() => {
-    if (!user) { setCount(0); return }
+    if (!user || document.hidden) { setCount(prev => user ? prev : 0); return }
     api.get('/notifications/non-lues/')
       .then(({ data }) => setCount(data.non_lues ?? 0))
       .catch(() => {})
   }, [user])
 
-  // Rafraîchir toutes les 30 secondes
   useEffect(() => {
     refresh()
-    const id = setInterval(refresh, 30_000)
-    return () => clearInterval(id)
+    if (!user) return undefined
+
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        refresh()
+      }
+    }
+
+    const id = setInterval(() => {
+      if (!document.hidden) {
+        refresh()
+      }
+    }, 60_000)
+
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    return () => {
+      clearInterval(id)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+    }
   }, [refresh])
 
   return (

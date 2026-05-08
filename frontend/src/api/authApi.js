@@ -1,6 +1,9 @@
 import api from './axiosConfig'
 
 export const authApi = {
+  warmupBackend: () =>
+    api.get('/health/', { timeout: 15000 }),
+
   inscription: (data) =>
     api.post('/auth/inscription/', data),
 
@@ -37,11 +40,11 @@ export const authApi = {
     api.post('/auth/changer-mot-de-passe/', data),
 
   // Admin
-  getUtilisateurs: (role = '', search = '') => {
+  getUtilisateurs: (role = '', search = '', signal) => {
     const params = {}
     if (role)   params.role   = role
     if (search) params.search = search
-    return api.get('/auth/admin/utilisateurs/', { params })
+    return api.get('/auth/admin/utilisateurs/', { params, signal })
   },
 
   getUtilisateur: (id) =>

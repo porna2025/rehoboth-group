@@ -1,6 +1,7 @@
 from django.contrib.admin.sites import AdminSite
 from django.apps import apps
-from django.test import RequestFactory, TestCase
+from django.test import RequestFactory, TestCase, override_settings
+from rest_framework.test import APIClient
 
 from .admin import AdministrateurAdmin, ClientAdmin, TechnicienAdmin, UserAdmin
 from .models import Administrateur, Client, Technicien, User
@@ -130,3 +131,51 @@ class AdminComptesTests(TestCase):
 			set(queryset.values_list('email', flat=True)),
 			{'admin@example.com', 'manager@example.com'},
 		)
+
+
+@override_settings(DEBUG=True)
+class AuthFlowsTests(TestCase):
+	def setUp(self):
+		self.client = APIClient()
+		self.user = User.objects.create_user(
+			email='otp@example.com',
+			password='securepass123',
+			nom='Otp',
+			prenom='User',
+			role=User.CLIENT,
+			est_actif=True,
+			is_active=True,
+		)
+
+	def test_connexion_retourne_un_code_otp_de_secours_en_mode_debug(self):
+		response = self.client.post(
+			'/api/v1/auth/connexion/',
+			{'email': self.user.email, 'password': 'securepass123'},
+			format='json',
+		)
+
+		self.assertEqual(response.status_code, 200)
+		self.assertTrue(response.data['requires_2fa'])
+		self.assertEqual(response.data['email'], self.user.email)
+		self.assertIn('debug_otp_code', response.data)
+		self.assertTrue(response.data['otp_session_token'])
+
+		self.user.refresh_from_db()
+		self.assertEqual(self.user.otp_code, response.data['debug_otp_code'])
+		self.assertEqual(self.user.otp_session_token, response.data['otp_session_token'])
+
+	def test_reset_mot_de_passe_retourne_un_code_de_secours_en_mode_debug(self):
+		response = self.client.post(
+			'/api/v1/auth/mot-de-passe-oublie/',
+			{'email': self.user.email},
+			format='json',
+		)
+
+		self.assertEqual(response.status_code, 200)
+		self.assertEqual(response.data['email'], self.user.email)
+		self.assertIn('debug_reset_code', response.data)
+		self.assertTrue(response.data['reset_token'])
+
+		self.user.refresh_from_db()
+		self.assertEqual(self.user.password_reset_code, response.data['debug_reset_code'])
+		self.assertEqual(self.user.password_reset_token, response.data['reset_token'])

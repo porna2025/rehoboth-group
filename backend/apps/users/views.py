@@ -4,6 +4,7 @@ Vues API — Authentification et gestion des utilisateurs
 
 import logging
 import secrets
+from threading import Thread
 from datetime import timedelta
 
 from django.conf import settings
@@ -68,6 +69,20 @@ def _send_security_email(user, subject, body):
     )
 
 
+def _send_security_email_async(user, subject, body, *, log_prefix, fallback_code=None):
+    recipient = user.email
+
+    def _deliver():
+        try:
+            _send_security_email(user, subject, body)
+        except Exception as exc:
+            logger.error("[%s] Envoi email échoué pour %s : %s", log_prefix, recipient, exc)
+            if fallback_code:
+                logger.warning("[%s CODE] %s → %s", log_prefix, recipient, fallback_code)
+
+    Thread(target=_deliver, daemon=True).start()
+
+
 def _send_login_otp(user):
     otp_code = f"{secrets.randbelow(1000000):06d}"
     otp_session_token = secrets.token_hex(24)
@@ -84,20 +99,16 @@ def _send_login_otp(user):
         'Si vous n\'êtes pas à l\'origine de cette demande, ignorez cet email.'
     )
 
-    email_sent = True
-
-    try:
-        _send_security_email(user, subject, body)
-    except Exception as exc:
-        email_sent = False
-        # L'email SMTP a échoué (ex: IP bloquée par Gmail depuis le serveur cloud)
-        # Le code OTP est loggué dans les logs serveur (Render > Logs)
-        logger.error("[OTP] Envoi email échoué pour %s : %s", user.email, exc)
-        logger.warning("[OTP CODE] %s → %s (valide 10 min)", user.email, otp_code)
+    _send_security_email_async(
+        user,
+        subject,
+        body,
+        log_prefix='OTP',
+        fallback_code=f"{otp_code} (valide 10 min)",
+    )
 
     return {
         'otp_session_token': otp_session_token,
-        'email_sent': email_sent,
         'otp_code': otp_code,
     }
 
@@ -110,7 +121,7 @@ def _send_password_reset_code(user):
     user.password_reset_expires_at = timezone.now() + timedelta(minutes=15)
     user.save(update_fields=['password_reset_code', 'password_reset_token', 'password_reset_expires_at', 'updated_at'])
 
-    _send_security_email(
+    _send_security_email_async(
         user,
         'Réinitialisation de votre mot de passe Rehoboth Group',
         (
@@ -119,9 +130,14 @@ def _send_password_reset_code(user):
             'Ce code expire dans 15 minutes.\n\n'
             'Si vous n\'êtes pas à l\'origine de cette demande, ignorez cet email.'
         ),
+        log_prefix='RESET PASSWORD',
+        fallback_code=f"{reset_code} (valide 15 min)",
     )
 
-    return reset_token
+    return {
+        'reset_token': reset_token,
+        'reset_code': reset_code,
+    }
 
 
 @api_view(['POST'])
@@ -170,13 +186,7 @@ def connexion(request):
             user.save(update_fields=['fcm_token'])
 
         if user.two_factor_enabled:
-            try:
-                otp_payload = _send_login_otp(user)
-            except Exception:
-                return Response(
-                    {'error': "Impossible d'envoyer le code de vérification. Réessayez plus tard."},
-                    status=status.HTTP_503_SERVICE_UNAVAILABLE
-                )
+            otp_payload = _send_login_otp(user)
 
             response_data = {
                 'requires_2fa': True,
@@ -185,10 +195,10 @@ def connexion(request):
                 'email': user.email,
             }
 
-            if settings.DEBUG and not otp_payload['email_sent']:
+            if settings.DEBUG:
                 response_data['debug_otp_code'] = otp_payload['otp_code']
                 response_data['message'] = (
-                    f"Email indisponible. Utilisez le code affiché à l'écran pour {user.email}."
+                    f"Utilisez le code affiché à l'écran si l'email tarde à arriver pour {user.email}."
                 )
 
             return Response(response_data, status=status.HTTP_200_OK)
@@ -294,21 +304,28 @@ def forgot_password_request(request):
         }, status=status.HTTP_200_OK)
 
     try:
-        if user.est_actif:
-            _send_password_reset_code(user)
+        reset_payload = _send_password_reset_code(user) if user.est_actif else {'reset_token': '', 'reset_code': ''}
     except Exception:
         return Response(
-            {'error': "Impossible d'envoyer l'email de réinitialisation. Réessayez plus tard."},
+            {'error': "Impossible de préparer la réinitialisation du mot de passe. Réessayez plus tard."},
             status=status.HTTP_503_SERVICE_UNAVAILABLE
         )
 
-    reset_token = user.password_reset_token or ''
+    reset_token = reset_payload['reset_token']
 
-    return Response({
+    response_data = {
         'message': "Si un compte existe avec cette adresse, un code de réinitialisation a été envoyé.",
         'email': email,
         'reset_token': reset_token,
-    }, status=status.HTTP_200_OK)
+    }
+
+    if settings.DEBUG and reset_payload['reset_code']:
+        response_data['debug_reset_code'] = reset_payload['reset_code']
+        response_data['message'] = (
+            f"Utilisez le code affiché à l'écran si l'email tarde à arriver pour {email}."
+        )
+
+    return Response(response_data, status=status.HTTP_200_OK)
 
 
 @api_view(['POST'])
