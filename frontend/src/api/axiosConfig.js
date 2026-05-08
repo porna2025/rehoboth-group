@@ -15,12 +15,26 @@ const api = axios.create({
   timeout: 60000, // 60 secondes (Render free tier peut prendre ~50s au réveil)
 })
 
+// Endpoints publics qui ne doivent jamais recevoir le token JWT
+const PUBLIC_PATHS = [
+  '/auth/connexion/',
+  '/auth/inscription/',
+  '/auth/connexion/verifier-otp/',
+  '/auth/connexion/renvoyer-otp/',
+  '/auth/mot-de-passe-oublie/',
+  '/auth/mot-de-passe-oublie/confirmer/',
+  '/auth/token/refresh/',
+]
+
 // ── Intercepteur de requête : injecter le token JWT ───────────────────────
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('access_token')
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`
+    const isPublic = PUBLIC_PATHS.some(path => config.url?.includes(path))
+    if (!isPublic) {
+      const token = localStorage.getItem('access_token')
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`
+      }
     }
     return config
   },
