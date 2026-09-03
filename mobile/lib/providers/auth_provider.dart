@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
+import '../config/api_config.dart';
 import '../models/user.dart';
 import '../services/api_service.dart';
 
@@ -12,6 +13,7 @@ class AuthProvider extends ChangeNotifier {
   bool _requires2fa = false;
   String? _otpEmail;
   String? _otpSessionToken;
+  String? _debugOtpCode;
 
   final ApiService _api = ApiService();
 
@@ -21,6 +23,7 @@ class AuthProvider extends ChangeNotifier {
   bool get isConnected => _user != null;
   bool get requires2fa => _requires2fa;
   String? get otpEmail => _otpEmail;
+  String? get debugOtpCode => _debugOtpCode;
 
   void _setLoading(bool v) {
     _loading = v;
@@ -44,6 +47,30 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
+  Future<void> initialiserSession() async {
+    _setLoading(true);
+    _setError(null);
+    try {
+      _user = await _api.getCachedUser();
+      if (_user != null) {
+        notifyListeners();
+      }
+
+      final connecte = await _api.estConnecte();
+      if (!connecte) {
+        _user = null;
+        return;
+      }
+
+      _user = await _api.getProfil();
+    } catch (_) {
+      _user = null;
+      await _api.deconnexion();
+    } finally {
+      _setLoading(false);
+    }
+  }
+
   Future<bool> connexion({
     required String email,
     required String password,
@@ -53,12 +80,14 @@ class AuthProvider extends ChangeNotifier {
     _requires2fa = false;
     _otpEmail = null;
     _otpSessionToken = null;
+    _debugOtpCode = null;
     try {
       final data = await _api.connexion(email: email, password: password);
       if (data['requires_2fa'] == true) {
         _requires2fa = true;
         _otpEmail = data['email']?.toString();
         _otpSessionToken = data['otp_session_token']?.toString();
+        _debugOtpCode = data['debug_otp_code']?.toString();
         notifyListeners();
         return false;
       }
@@ -88,6 +117,7 @@ class AuthProvider extends ChangeNotifier {
       _requires2fa = false;
       _otpEmail = null;
       _otpSessionToken = null;
+      _debugOtpCode = null;
       notifyListeners();
       return true;
     } catch (e) {
@@ -103,6 +133,7 @@ class AuthProvider extends ChangeNotifier {
     _requires2fa = false;
     _otpEmail = null;
     _otpSessionToken = null;
+    _debugOtpCode = null;
     _error = null;
     notifyListeners();
   }
@@ -116,6 +147,8 @@ class AuthProvider extends ChangeNotifier {
         otpSessionToken: _otpSessionToken!,
       );
       _otpSessionToken = data['otp_session_token']?.toString();
+      _debugOtpCode = data['debug_otp_code']?.toString();
+      notifyListeners();
       return data['message']?.toString();
     } catch (_) {
       return null;
@@ -158,6 +191,7 @@ class AuthProvider extends ChangeNotifier {
     await _api.deconnexion();
     _user = null;
     _error = null;
+    _debugOtpCode = null;
     notifyListeners();
   }
 
@@ -207,9 +241,15 @@ class AuthProvider extends ChangeNotifier {
       if (e.type == DioExceptionType.connectionTimeout ||
           e.type == DioExceptionType.receiveTimeout ||
           e.type == DioExceptionType.sendTimeout) {
+        if (ApiConfig.usesProductionBackend) {
+          return 'Le serveur met trop de temps à répondre. Il est peut-être en cours de réveil sur l\'hébergement gratuit. Réessayez dans quelques secondes.';
+        }
         return 'Délai de connexion dépassé. Vérifiez votre réseau.';
       }
       if (e.type == DioExceptionType.connectionError) {
+        if (ApiConfig.usesProductionBackend) {
+          return 'Impossible de joindre le serveur. Vérifiez l\'URL backend configurée et réessayez dans quelques secondes.';
+        }
         return 'Impossible de joindre le serveur. Vérifiez l\'adresse IP et le réseau Wi-Fi.';
       }
     }

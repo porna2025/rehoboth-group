@@ -119,30 +119,24 @@ class _SplashRouteState extends State<_SplashRoute>
   }
 
   Future<void> _check() async {
-    // Laisser l'animation démarrer
-    await Future.delayed(const Duration(milliseconds: 1200));
+    final warmup = ApiService().warmupBackend();
+    await Future.delayed(const Duration(milliseconds: 450));
     if (!mounted) return;
 
-    final api = ApiService();
     final auth = context.read<AuthProvider>();
 
     try {
-      final connecte = await api.estConnecte();
+      await warmup;
+      await auth.initialiserSession();
       if (!mounted) return;
 
-      if (connecte) {
-        await auth.chargerProfil();
-        if (!mounted) return;
-        final user = auth.user;
-        if (user == null) {
-          Navigator.pushReplacementNamed(context, '/login');
-        } else if (user.isTechnicien) {
-          Navigator.pushReplacementNamed(context, '/home-technicien');
-        } else {
-          Navigator.pushReplacementNamed(context, '/home-client');
-        }
-      } else {
+      final user = auth.user;
+      if (user == null) {
         Navigator.pushReplacementNamed(context, '/login');
+      } else if (user.isTechnicien) {
+        Navigator.pushReplacementNamed(context, '/home-technicien');
+      } else {
+        Navigator.pushReplacementNamed(context, '/home-client');
       }
     } catch (_) {
       if (mounted) Navigator.pushReplacementNamed(context, '/login');

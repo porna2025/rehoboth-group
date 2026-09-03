@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../config/api_config.dart';
@@ -10,6 +12,9 @@ import '../models/demande.dart';
 
 class ApiService {
   static final ApiService _instance = ApiService._internal();
+  static Future<void>? _warmupInFlight;
+  static DateTime? _lastWarmupAt;
+
   factory ApiService() => _instance;
   ApiService._internal() {
     _initDio();
@@ -17,6 +22,13 @@ class ApiService {
 
   late Dio _dio;
   final _storage = const FlutterSecureStorage();
+  String? _accessTokenCache;
+  String? _refreshTokenCache;
+  bool _tokenCacheLoaded = false;
+
+  static const _accessTokenKey = 'access_token';
+  static const _refreshTokenKey = 'refresh_token';
+  static const _cachedUserKey = 'cached_user';
 
   // ── Initialisation Dio ────────────────────────────────────────────────────
 
@@ -34,7 +46,7 @@ class ApiService {
     _dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) async {
-          final token = await _storage.read(key: 'access_token');
+          final token = await getAccessToken();
           if (token != null && token.isNotEmpty) {
             options.headers['Authorization'] = 'Bearer $token';
           }
@@ -47,7 +59,7 @@ class ApiService {
             final success = await _refreshToken();
             if (success) {
               // Rejouer la requête originale avec le nouveau token
-              final token = await _storage.read(key: 'access_token');
+              final token = await getAccessToken();
               error.requestOptions.headers['Authorization'] = 'Bearer $token';
               try {
                 final response = await _dio.fetch(error.requestOptions);
@@ -65,9 +77,38 @@ class ApiService {
 
   // ── Rafraîchissement du token JWT ─────────────────────────────────────────
 
+  Future<void> _ensureTokenCacheLoaded() async {
+    if (_tokenCacheLoaded) return;
+    _accessTokenCache = await _storage.read(key: _accessTokenKey);
+    _refreshTokenCache = await _storage.read(key: _refreshTokenKey);
+    _tokenCacheLoaded = true;
+  }
+
+  Future<void> _saveTokens({required String access, required String refresh}) async {
+    _accessTokenCache = access;
+    _refreshTokenCache = refresh;
+    _tokenCacheLoaded = true;
+    await Future.wait([
+      _storage.write(key: _accessTokenKey, value: access),
+      _storage.write(key: _refreshTokenKey, value: refresh),
+    ]);
+  }
+
+  Future<void> _clearSessionStorage() async {
+    _accessTokenCache = null;
+    _refreshTokenCache = null;
+    _tokenCacheLoaded = true;
+    await Future.wait([
+      _storage.delete(key: _accessTokenKey),
+      _storage.delete(key: _refreshTokenKey),
+      _storage.delete(key: _cachedUserKey),
+    ]);
+  }
+
   Future<bool> _refreshToken() async {
     try {
-      final refresh = await _storage.read(key: 'refresh_token');
+      await _ensureTokenCacheLoaded();
+      final refresh = _refreshTokenCache;
       if (refresh == null || refresh.isEmpty) return false;
 
       // Requête directe sans intercepteurs pour éviter la boucle infinie
@@ -79,22 +120,77 @@ class ApiService {
       final newAccessToken = response.data['access']?.toString() ?? '';
       if (newAccessToken.isEmpty) return false;
 
-      await _storage.write(key: 'access_token', value: newAccessToken);
+      _accessTokenCache = newAccessToken;
+      await _storage.write(key: _accessTokenKey, value: newAccessToken);
       return true;
     } catch (_) {
       // Refresh échoué → déconnecter l'utilisateur
-      await _storage.deleteAll();
+      await _clearSessionStorage();
       return false;
     }
   }
 
   // ── Méthodes de stockage sécurisé ─────────────────────────────────────────
 
-  Future<String?> getAccessToken() => _storage.read(key: 'access_token');
-  Future<String?> getRefreshToken() => _storage.read(key: 'refresh_token');
+  Future<String?> getAccessToken() async {
+    await _ensureTokenCacheLoaded();
+    return _accessTokenCache;
+  }
+
+  Future<String?> getRefreshToken() async {
+    await _ensureTokenCacheLoaded();
+    return _refreshTokenCache;
+  }
+
   Future<bool> estConnecte() async {
-    final token = await _storage.read(key: 'access_token');
+    final token = await getAccessToken();
     return token != null && token.isNotEmpty;
+  }
+
+  Future<void> cacheUser(User user) async {
+    await _storage.write(key: _cachedUserKey, value: jsonEncode(user.toJson()));
+  }
+
+  Future<User?> getCachedUser() async {
+    final raw = await _storage.read(key: _cachedUserKey);
+    if (raw == null || raw.isEmpty) return null;
+    try {
+      return User.fromJson(jsonDecode(raw) as Map<String, dynamic>);
+    } catch (_) {
+      await _storage.delete(key: _cachedUserKey);
+      return null;
+    }
+  }
+
+  Future<void> warmupBackend() async {
+    final now = DateTime.now();
+    final lastWarmupAt = _lastWarmupAt;
+    if (lastWarmupAt != null) {
+      final minutesSinceLastWarmup =
+          now.difference(lastWarmupAt).inMinutes;
+      if (minutesSinceLastWarmup < ApiConfig.warmupCooldownMinutes) {
+        return;
+      }
+    }
+
+    final inFlight = _warmupInFlight;
+    if (inFlight != null) {
+      return inFlight;
+    }
+
+    final warmup = (() async {
+      try {
+        await _dio.get('/health/');
+      } catch (_) {
+        // Ignorer : l'objectif est seulement de réveiller le backend si besoin.
+      } finally {
+        _lastWarmupAt = DateTime.now();
+        _warmupInFlight = null;
+      }
+    })();
+
+    _warmupInFlight = warmup;
+    return warmup;
   }
 
   // ── Utilitaire : normalise une réponse liste ou paginée DRF ──────────────
@@ -117,13 +213,17 @@ class ApiService {
     required String password,
     String? fcmToken,
   }) async {
+    final payload = <String, dynamic>{
+      'email': email,
+      'password': password,
+    };
+    if (fcmToken != null && fcmToken.isNotEmpty) {
+      payload['fcm_token'] = fcmToken;
+    }
+
     final response = await _dio.post(
       '/auth/connexion/',
-      data: {
-        'email': email,
-        'password': password,
-        'fcm_token': ?fcmToken,
-      },
+      data: payload,
     );
 
     final data = response.data as Map<String, dynamic>;
@@ -132,14 +232,11 @@ class ApiService {
     if (data['requires_2fa'] == true) return data;
 
     // Sauvegarder les tokens de façon sécurisée
-    await _storage.write(
-      key: 'access_token',
-      value: data['tokens']['access'].toString(),
+    await _saveTokens(
+      access: data['tokens']['access'].toString(),
+      refresh: data['tokens']['refresh'].toString(),
     );
-    await _storage.write(
-      key: 'refresh_token',
-      value: data['tokens']['refresh'].toString(),
-    );
+    await cacheUser(User.fromJson(data['user'] as Map<String, dynamic>));
 
     return data;
   }
@@ -159,14 +256,11 @@ class ApiService {
       },
     );
     final data = response.data as Map<String, dynamic>;
-    await _storage.write(
-      key: 'access_token',
-      value: data['tokens']['access'].toString(),
+    await _saveTokens(
+      access: data['tokens']['access'].toString(),
+      refresh: data['tokens']['refresh'].toString(),
     );
-    await _storage.write(
-      key: 'refresh_token',
-      value: data['tokens']['refresh'].toString(),
-    );
+    await cacheUser(User.fromJson(data['user'] as Map<String, dynamic>));
     return data;
   }
 
@@ -240,14 +334,11 @@ class ApiService {
     );
 
     final data = response.data as Map<String, dynamic>;
-    await _storage.write(
-      key: 'access_token',
-      value: data['tokens']['access'].toString(),
+    await _saveTokens(
+      access: data['tokens']['access'].toString(),
+      refresh: data['tokens']['refresh'].toString(),
     );
-    await _storage.write(
-      key: 'refresh_token',
-      value: data['tokens']['refresh'].toString(),
-    );
+    await cacheUser(User.fromJson(data['user'] as Map<String, dynamic>));
 
     return data;
   }
@@ -255,20 +346,22 @@ class ApiService {
   /// Déconnexion
   Future<void> deconnexion() async {
     try {
-      final refresh = await _storage.read(key: 'refresh_token');
+      final refresh = await getRefreshToken();
       if (refresh != null) {
         await _dio.post('/auth/deconnexion/', data: {'refresh': refresh});
       }
     } catch (_) {
       /* ignorer les erreurs réseau */
     }
-    await _storage.deleteAll();
+    await _clearSessionStorage();
   }
 
   /// Récupérer le profil de l'utilisateur connecté
   Future<User> getProfil() async {
     final response = await _dio.get('/auth/profil/');
-    return User.fromJson(response.data as Map<String, dynamic>);
+    final user = User.fromJson(response.data as Map<String, dynamic>);
+    await cacheUser(user);
+    return user;
   }
 
   /// Modifier son profil
@@ -277,15 +370,20 @@ class ApiService {
     String? prenom,
     String? telephone,
   }) async {
+    final payload = <String, dynamic>{};
+    if (nom != null && nom.isNotEmpty) payload['nom'] = nom;
+    if (prenom != null && prenom.isNotEmpty) payload['prenom'] = prenom;
+    if (telephone != null && telephone.isNotEmpty) {
+      payload['telephone'] = telephone;
+    }
+
     final response = await _dio.patch(
       '/auth/profil/',
-      data: {
-        'nom': ?nom,
-        'prenom': ?prenom,
-        'telephone': ?telephone,
-      },
+      data: payload,
     );
-    return User.fromJson(response.data as Map<String, dynamic>);
+    final user = User.fromJson(response.data as Map<String, dynamic>);
+    await cacheUser(user);
+    return user;
   }
 
   /// Changer le mot de passe
@@ -324,15 +422,15 @@ class ApiService {
     double rayon = 20,
     String? search,
   }) async {
-    final params = <String, dynamic>{
-      'rayon': rayon,
-      'categorie': ?categorieId,
-      if (disponible == true) 'disponible': 'true',
-      'note_min': ?noteMin,
-      'lat': ?lat,
-      'lng': ?lng,
-      'search': ?search,
-    };
+    final params = <String, dynamic>{'rayon': rayon};
+    if (categorieId != null && categorieId.isNotEmpty) {
+      params['categorie'] = categorieId;
+    }
+    if (disponible == true) params['disponible'] = 'true';
+    if (noteMin != null) params['note_min'] = noteMin;
+    if (lat != null) params['lat'] = lat;
+    if (lng != null) params['lng'] = lng;
+    if (search != null && search.isNotEmpty) params['search'] = search;
 
     final response = await _dio.get('/techniciens/', queryParameters: params);
     return _toList(response.data)
@@ -366,16 +464,22 @@ class ApiService {
     String? zoneCouverture,
     int anneesExperience = 0,
   }) async {
+    final payload = <String, dynamic>{
+      'categorie_id': categorieId,
+      'specialite': specialite,
+      'annees_experience': anneesExperience,
+    };
+    if (description != null && description.isNotEmpty) {
+      payload['description'] = description;
+    }
+    if (tarifHoraire != null) payload['tarif_horaire'] = tarifHoraire;
+    if (zoneCouverture != null && zoneCouverture.isNotEmpty) {
+      payload['zone_couverture'] = zoneCouverture;
+    }
+
     final response = await _dio.post(
       '/techniciens/profil/creer/',
-      data: {
-        'categorie_id': categorieId,
-        'specialite': specialite,
-        'description': ?description,
-        'tarif_horaire': ?tarifHoraire,
-        'zone_couverture': ?zoneCouverture,
-        'annees_experience': anneesExperience,
-      },
+      data: payload,
     );
     return Technicien.fromJson(response.data as Map<String, dynamic>);
   }
@@ -407,18 +511,22 @@ class ApiService {
     String mode = 'sur_place',
     String? dateSouhaitee,
   }) async {
+    final payload = <String, dynamic>{
+      'categorie_id': categorieId,
+      'description': description,
+      'adresse': adresse,
+      'latitude': latitude,
+      'longitude': longitude,
+      'type_intervention': typeIntervention,
+      'mode': mode,
+    };
+    if (dateSouhaitee != null && dateSouhaitee.isNotEmpty) {
+      payload['date_souhaitee'] = dateSouhaitee;
+    }
+
     final response = await _dio.post(
       '/demandes/',
-      data: {
-        'categorie_id': categorieId,
-        'description': description,
-        'adresse': adresse,
-        'latitude': latitude,
-        'longitude': longitude,
-        'type_intervention': typeIntervention,
-        'mode': mode,
-        'date_souhaitee': ?dateSouhaitee,
-      },
+      data: payload,
     );
     return Demande.fromJson(response.data as Map<String, dynamic>);
   }
@@ -474,13 +582,13 @@ class ApiService {
     String? rapport,
     double? montantDevis,
   }) async {
+    final payload = <String, dynamic>{'statut': statut};
+    if (rapport != null && rapport.isNotEmpty) payload['rapport'] = rapport;
+    if (montantDevis != null) payload['montant_devis'] = montantDevis;
+
     final response = await _dio.patch(
       '/demandes/$id/statut/',
-      data: {
-        'statut': statut,
-        'rapport': ?rapport,
-        'montant_devis': ?montantDevis,
-      },
+      data: payload,
     );
     return Demande.fromJson(response.data as Map<String, dynamic>);
   }
@@ -529,14 +637,18 @@ class ApiService {
     required String methode,
     String? telephone,
   }) async {
+    final payload = <String, dynamic>{
+      'demande_id': demandeId,
+      'montant': montant,
+      'methode': methode,
+    };
+    if (telephone != null && telephone.isNotEmpty) {
+      payload['telephone_paiement'] = telephone;
+    }
+
     final response = await _dio.post(
       '/paiements/initier/',
-      data: {
-        'demande_id': demandeId,
-        'montant': montant,
-        'methode': methode,
-        'telephone_paiement': ?telephone,
-      },
+      data: payload,
     );
     return response.data as Map<String, dynamic>;
   }

@@ -69,7 +69,9 @@ class _LoginPageState extends State<LoginPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            'Un code de vérification a été envoyé à ${auth.otpEmail}',
+            auth.debugOtpCode != null
+                ? 'Utilisez le code affiché si l\'email tarde à arriver.'
+                : 'Un code de vérification a été envoyé à ${auth.otpEmail}',
           ),
           backgroundColor: Colors.blue[700],
           duration: const Duration(seconds: 5),
@@ -301,6 +303,40 @@ class _LoginPageState extends State<LoginPage> {
           auth.otpEmail ?? '',
           style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
         ),
+        if (auth.debugOtpCode != null) ...[
+          const SizedBox(height: 16),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFEF3C7),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFFF59E0B)),
+            ),
+            child: Column(
+              children: [
+                const Text(
+                  'Code OTP de secours',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF92400E),
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  auth.debugOtpCode!,
+                  style: const TextStyle(
+                    fontSize: 26,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 6,
+                    color: Color(0xFF92400E),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
         const SizedBox(height: 24),
         // Champ OTP 6 chiffres
         TextField(

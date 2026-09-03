@@ -28,6 +28,8 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
   // ── État ──────────────────────────────────────────────────────────────────
   bool _loading = false;
   String? _errorMsg;
+  String? _infoMsg;
+  String? _debugResetCode;
   bool _obscurePwd = true;
   bool _obscurePwd2 = true;
 
@@ -53,6 +55,10 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
         // Chercher un champ "detail" ou "error" ou "message"
         for (final key in ['detail', 'error', 'message']) {
           if (data[key] is String) return data[key] as String;
+        }
+        if (data['non_field_errors'] is List &&
+            (data['non_field_errors'] as List).isNotEmpty) {
+          return (data['non_field_errors'] as List).first.toString();
         }
         // Sinon, concaténer les premières erreurs de champ
         final msgs = <String>[];
@@ -90,12 +96,16 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
     setState(() {
       _loading = true;
       _errorMsg = null;
+      _infoMsg = null;
+      _debugResetCode = null;
     });
 
     try {
       final result = await _api.demanderResetMotDePasse(email);
       _resetToken = result['reset_token']?.toString() ?? '';
       _confirmedEmail = result['email']?.toString() ?? email;
+      _infoMsg = result['message']?.toString();
+      _debugResetCode = result['debug_reset_code']?.toString();
       setState(() {
         _step = 2;
         _loading = false;
@@ -126,6 +136,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
     setState(() {
       _loading = true;
       _errorMsg = null;
+      _infoMsg = null;
     });
 
     try {
@@ -258,6 +269,33 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                   ),
                 ),
               ],
+              if (_infoMsg != null) ...[
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEFF6FF),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: const Color(0xFF93C5FD)),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.info_outline,
+                          color: Color(0xFF2563EB), size: 18),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          _infoMsg!,
+                          style: const TextStyle(
+                            color: Color(0xFF1D4ED8),
+                            fontSize: 13,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ],
           ),
         ),
@@ -351,6 +389,40 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
           ),
         ),
         const SizedBox(height: 16),
+        if (_debugResetCode != null) ...[
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFEF3C7),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFFF59E0B)),
+            ),
+            child: Column(
+              children: [
+                const Text(
+                  'Code de secours',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF92400E),
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  _debugResetCode!,
+                  style: const TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 6,
+                    color: Color(0xFF92400E),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+        ],
 
         // Code de réinitialisation (6 chiffres)
         const Text(

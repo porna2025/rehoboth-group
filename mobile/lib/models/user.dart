@@ -43,6 +43,22 @@ class User {
     );
   }
 
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'email': email,
+      'nom': nom,
+      'prenom': prenom,
+      'telephone': telephone,
+      'role': role,
+      'photo_profil': photoProfil,
+      'est_verifie': estVerifie,
+      'est_actif': estActif,
+      'nom_complet': nomComplet,
+      'created_at': createdAt,
+    };
+  }
+
   bool get isClient => role == 'client';
   bool get isTechnicien => role == 'technicien';
   bool get isAdmin => role == 'admin';
