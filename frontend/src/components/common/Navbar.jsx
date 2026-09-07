@@ -75,9 +75,12 @@ export default function Navbar() {
       gap:           '1rem',
     }}>
       {/* Logo */}
-      <Link to={dashboardLink} style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'white', fontWeight: 700, fontSize: '1.1rem' }}>
-        <span style={{ fontSize: '1.4rem' }}>🔧</span>
-        Rehoboth Group
+      <Link to={dashboardLink} style={{ display: 'flex', alignItems: 'center', gap: 10, color: 'white', fontWeight: 700, fontSize: '1.1rem' }}>
+        <img
+          src="/rehoboth-logo.svg"
+          alt="Logo Rehoboth Group"
+          style={{ width: 100, height: 'auto', display: 'block' }}
+        />
       </Link>
 
       <div style={{ flex: 1 }} />

@@ -152,8 +152,11 @@ export default function Connexion() {
       <div style={styles.card}>
         {/* Logo */}
         <div style={styles.logoWrap}>
-          <span style={{ fontSize: '2.5rem' }}>🔧</span>
-          <h1 style={styles.appName}>Rehoboth Group</h1>
+          <img
+            src="/rehoboth-logo.svg"
+            alt="Logo Rehoboth Group"
+            style={styles.logoImage}
+          />
           <p style={styles.subtitle}>Connexion à votre espace</p>
         </div>
 
@@ -282,6 +285,13 @@ const styles = {
   logoWrap: {
     textAlign:    'center',
     marginBottom: '1.75rem',
+  },
+  logoImage: {
+    width:      '100%',
+    maxWidth:   '260px',
+    height:     'auto',
+    display:    'block',
+    margin:     '0 auto 0.2rem',
   },
   appName: {
     color:      'var(--bleu)',

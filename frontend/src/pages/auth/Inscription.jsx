@@ -59,12 +59,13 @@ export default function Inscription() {
   return (
     <div style={styles.page}>
       <div style={styles.card}>
-        <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
-          <span style={{ fontSize: '2.5rem' }}>🔧</span>
-          <h1 style={{ color: 'var(--bleu)', fontSize: '1.4rem', fontWeight: 700, margin: '0.25rem 0 0.1rem' }}>
-            Rehoboth Group
-          </h1>
-          <p style={{ color: 'var(--gris)', fontSize: '0.88rem' }}>Créer votre compte</p>
+        <div style={styles.logoWrap}>
+          <img
+            src="/rehoboth-logo.svg"
+            alt="Logo Rehoboth Group"
+            style={styles.logoImage}
+          />
+          <p style={styles.subtitle}>Créer votre compte</p>
         </div>
 
         {errors.non_field_errors && (
@@ -161,6 +162,22 @@ const styles = {
     maxWidth:     480,
     boxShadow:    '0 16px 48px rgba(0,0,0,0.18)',
     animation:    'fadeIn 0.3s ease',
+  },
+  logoWrap: {
+    textAlign:    'center',
+    marginBottom: '1.5rem',
+  },
+  logoImage: {
+    width:      '100%',
+    maxWidth:   '260px',
+    height:     'auto',
+    display:    'block',
+    margin:     '0 auto 0.2rem',
+  },
+  subtitle: {
+    color:    'var(--gris)',
+    fontSize: '0.88rem',
+    margin:   '0.5rem 0 0',
   },
   alert: {
     background:   'var(--rouge-clair)',
