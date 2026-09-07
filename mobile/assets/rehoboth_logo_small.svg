@@ -1,0 +1,59 @@
+<svg width="1200" height="820" viewBox="0 0 1200 820" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="blue1" x1="156" y1="0" x2="730" y2="500" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0B5FC5"/>
+      <stop offset="1" stop-color="#083F8D"/>
+    </linearGradient>
+    <linearGradient id="orange1" x1="0" y1="0" x2="220" y2="220" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFB300"/>
+      <stop offset="1" stop-color="#F57C00"/>
+    </linearGradient>
+  </defs>
+
+  <g transform="translate(170,30)">
+    <path d="M90 320C90 240 150 180 230 180H560C640 180 700 240 700 320V470C700 550 640 610 560 610H230C150 610 90 550 90 470V320Z" fill="url(#blue1)"/>
+    <path d="M150 260L380 120L610 260H150Z" fill="#0D5EC8"/>
+    <path d="M200 220H560C600 220 630 250 630 290V470H130V290C130 250 160 220 200 220Z" fill="#F7F9FC"/>
+
+    <g transform="translate(0,0)">
+      <circle cx="180" cy="275" r="54" fill="url(#orange1)"/>
+      <path d="M160 275H200" stroke="#F7F9FC" stroke-width="12" stroke-linecap="round"/>
+      <path d="M180 255V295" stroke="#F7F9FC" stroke-width="12" stroke-linecap="round"/>
+      <path d="M130 365L150 385L175 345" stroke="#0D5EC8" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+    </g>
+
+    <g transform="translate(240,60)">
+      <circle cx="130" cy="50" r="50" fill="#0D5EC8"/>
+      <path d="M95 140C95 112 118 90 146 90H152C180 90 203 112 203 140V190H95V140Z" fill="#0D5EC8"/>
+      <path d="M70 190H260L232 250H98L70 190Z" fill="#0D5EC8"/>
+      <path d="M87 190L137 225L115 260H82L87 190Z" fill="#0D5EC8"/>
+      <path d="M214 190L188 228L227 260H260L214 190Z" fill="#0D5EC8"/>
+      <circle cx="130" cy="40" r="14" fill="#FFB300"/>
+      <path d="M110 58L130 42L150 58" stroke="#FFB300" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M60 225C60 201 80 180 103 180H118C141 180 160 201 160 225V233H60V225Z" fill="#F7F9FC"/>
+    </g>
+
+    <g transform="translate(478,90)">
+      <rect x="0" y="0" width="180" height="290" rx="30" fill="#0D5EC8"/>
+      <rect x="20" y="22" width="140" height="246" rx="18" fill="#F7F9FC"/>
+      <circle cx="90" cy="100" r="34" fill="#0D5EC8"/>
+      <path d="M72 168C72 150 86 136 104 136H109C127 136 141 150 141 168V194H72V168Z" fill="#0D5EC8"/>
+      <path d="M41 152L86 104L135 152" stroke="#FFB300" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M68 85C76 74 88 68 101 68C114 68 126 74 134 85" stroke="#FFB300" stroke-width="8" stroke-linecap="round"/>
+    </g>
+
+    <g transform="translate(180,190)">
+      <circle cx="120" cy="225" r="28" fill="#0D5EC8"/>
+      <path d="M104 225H136" stroke="#F7F9FC" stroke-width="8" stroke-linecap="round"/>
+      <path d="M120 209V241" stroke="#F7F9FC" stroke-width="8" stroke-linecap="round"/>
+      <path d="M74 265C96 280 109 300 120 320C131 300 144 280 166 265" stroke="#FFB300" stroke-width="10" stroke-linecap="round"/>
+    </g>
+  </g>
+
+  <g transform="translate(110,670)">
+    <text x="0" y="0" font-size="56" font-weight="900" fill="#0D5EC8" font-family="Arial, Helvetica, sans-serif">Groupe</text>
+    <text x="0" y="105" font-size="122" font-weight="900" fill="#0D5EC8" font-family="Arial, Helvetica, sans-serif">Rehoboth</text>
+    <path d="M0 155H560" stroke="#F57C00" stroke-width="10" stroke-linecap="round"/>
+    <text x="0" y="220" font-size="30" font-weight="700" fill="#0D5EC8" font-family="Arial, Helvetica, sans-serif">La bonne personne, le bon technicien, au bon moment !</text>
+  </g>
+</svg>

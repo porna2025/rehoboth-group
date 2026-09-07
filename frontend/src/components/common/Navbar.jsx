@@ -77,9 +77,9 @@ export default function Navbar() {
       {/* Logo */}
       <Link to={dashboardLink} style={{ display: 'flex', alignItems: 'center', gap: 10, color: 'white', fontWeight: 700, fontSize: '1.1rem' }}>
         <img
-          src="/rehoboth-logo.svg"
+          src="/rehoboth-logo-small.svg"
           alt="Logo Rehoboth Group"
-          style={{ width: 100, height: 'auto', display: 'block' }}
+          style={{ width: 82, height: 'auto', display: 'block' }}
         />
       </Link>
 

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
 
@@ -33,7 +34,10 @@ class _LoginPageState extends State<LoginPage> {
     _resendCountdown = 30;
     _resendTimer?.cancel();
     _resendTimer = Timer.periodic(const Duration(seconds: 1), (t) {
-      if (!mounted) { t.cancel(); return; }
+      if (!mounted) {
+        t.cancel();
+        return;
+      }
       setState(() {
         if (_resendCountdown > 0) {
           _resendCountdown--;
@@ -140,18 +144,12 @@ class _LoginPageState extends State<LoginPage> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // Logo / titre
-                const Icon(Icons.handyman, size: 64, color: Color(0xFF2563EB)),
-                const SizedBox(height: 12),
-                const Text(
-                  'Rehoboth Groupe',
-                  style: TextStyle(
-                    fontSize: 26,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF1E293B),
-                  ),
+                SvgPicture.asset(
+                  'assets/rehoboth_logo_small.svg',
+                  width: 220,
+                  height: 140,
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 8),
                 Text(
                   otpMode
                       ? 'Vérification en deux étapes'
@@ -168,17 +166,13 @@ class _LoginPageState extends State<LoginPage> {
                     padding: const EdgeInsets.all(24),
                     child: otpMode
                         ? _buildOtpForm(loading)
-                        : Form(
-                            key: _formKey,
-                            child: _buildLoginForm(loading),
-                          ),
+                        : Form(key: _formKey, child: _buildLoginForm(loading)),
                   ),
                 ),
                 const SizedBox(height: 16),
                 if (!otpMode)
                   TextButton(
-                    onPressed: () =>
-                        Navigator.pushNamed(context, '/register'),
+                    onPressed: () => Navigator.pushNamed(context, '/register'),
                     child: const Text("Pas encore de compte ? S'inscrire"),
                   ),
                 if (otpMode)
@@ -224,9 +218,7 @@ class _LoginPageState extends State<LoginPage> {
             labelText: 'Mot de passe',
             prefixIcon: const Icon(Icons.lock_outline),
             suffixIcon: IconButton(
-              icon: Icon(
-                _obscure ? Icons.visibility_off : Icons.visibility,
-              ),
+              icon: Icon(_obscure ? Icons.visibility_off : Icons.visibility),
               onPressed: () => setState(() => _obscure = !_obscure),
             ),
           ),
@@ -239,8 +231,7 @@ class _LoginPageState extends State<LoginPage> {
         Align(
           alignment: Alignment.centerRight,
           child: TextButton(
-            onPressed: () =>
-                Navigator.pushNamed(context, '/forgot-password'),
+            onPressed: () => Navigator.pushNamed(context, '/forgot-password'),
             child: const Text(
               'Mot de passe oublié ?',
               style: TextStyle(fontSize: 13),
@@ -358,15 +349,10 @@ class _LoginPageState extends State<LoginPage> {
               fontSize: 28,
             ),
             counterText: '',
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-            ),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
-              borderSide: const BorderSide(
-                color: Color(0xFF2563EB),
-                width: 2,
-              ),
+              borderSide: const BorderSide(color: Color(0xFF2563EB), width: 2),
             ),
           ),
         ),
@@ -409,4 +395,3 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 }
-

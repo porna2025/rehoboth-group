@@ -153,7 +153,7 @@ export default function Connexion() {
         {/* Logo */}
         <div style={styles.logoWrap}>
           <img
-            src="/rehoboth-logo.svg"
+            src="/rehoboth-logo-small.svg"
             alt="Logo Rehoboth Group"
             style={styles.logoImage}
           />
@@ -288,7 +288,7 @@ const styles = {
   },
   logoImage: {
     width:      '100%',
-    maxWidth:   '260px',
+    maxWidth:   '210px',
     height:     'auto',
     display:    'block',
     margin:     '0 auto 0.2rem',
