@@ -99,12 +99,12 @@ export default function Inscription() {
 
           {/* Nom & Prénom */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-            <Field label="Prénom" name="prenom" value={form.prenom} onChange={handleChange} error={fieldError('prenom')} placeholder="Jean" />
-            <Field label="Nom" name="nom" value={form.nom} onChange={handleChange} error={fieldError('nom')} placeholder="Dupont" />
+            <Field label="Prénom" name="prenom" value={form.prenom} onChange={handleChange} error={fieldError('prenom')} placeholder="" />
+            <Field label="Nom" name="nom" value={form.nom} onChange={handleChange} error={fieldError('nom')} placeholder="" />
           </div>
 
           <Field label="E-mail" name="email" type="email" value={form.email} onChange={handleChange} error={fieldError('email')} placeholder="jean@email.com" autoComplete="email" />
-          <Field label="Téléphone (optionnel)" name="telephone" type="tel" value={form.telephone} onChange={handleChange} error={fieldError('telephone')} placeholder="+229 XX XX XX XX" />
+          <Field label="Téléphone (optionnel)" name="telephone" type="tel" value={form.telephone} onChange={handleChange} error={fieldError('telephone')} placeholder="+225 XX XX XX XX" />
           <Field label="Mot de passe" name="password" type="password" value={form.password} onChange={handleChange} error={fieldError('password')} placeholder="8 caractères minimum" autoComplete="new-password" />
           <Field label="Confirmer le mot de passe" name="password2" type="password" value={form.password2} onChange={handleChange} error={fieldError('password2')} placeholder="••••••••" autoComplete="new-password" />
 
